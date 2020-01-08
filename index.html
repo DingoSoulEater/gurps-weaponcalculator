@@ -1,0 +1,257 @@
+<html>
+	<head>
+    <style>
+      label{
+        display:inline-block;
+        width:90px;
+      }
+      input{
+        width:80px;
+      }
+    </style>
+	</head>
+	<body>
+		<div>
+      <p><b>Damage Calculation</b></p>
+			<label for="nDamage">nDamage</label> <input id="nDamage"> The weapon's damage statline, eg 8dx4 (10) cr. Explosion damage is currently not supported, so omit it from the stat line. <br>
+      <label for="nDR">nDR</label> <input id="nDR"> The amount of DR the attack facing. If DR is <i>blank</i>, DR is ignored entirely, <i>including</i> the DR1 given against AD < 1 attacks. Use DR 0 for including the 1 DR from AD < 1 attacks.<br>
+      <label for="nHP">nHP</label> <input value=10 id="nHP"> The amount of HP the victim has. This is used to determine likelihood of Major Wound (HP/2), Critical Wound (HP), Fatal Wound (HPx2), or Instant Death (HPx6). <br>
+			<button onclick="calc_damage()">Calculate Damage</button>
+			<p id="output"></p>
+			<p></p>
+      <p><b>Hit Calculation</b></p>
+      <label for="nAvDamage">nAvDamage</label> <input id="nAvDamage"> Average damage per hit. If you calculate damage above, this will be filled automatically.<br>
+      <label for="nSkill">nSkill</label> <input id="nSkill"> The skill level of the shooter before Rate of Fire bonuses.<br>
+      <label for="nRoF">nRoF</label> <input id="nRoF"> The weapon's RoF. Multiple projectile loads are supported (eg 3x9 for shotguns)<br>
+      <label for="nRcl">nRcl</label> <input id="nRcl"> The weapon's Rcl. Decimals are supported; for <i>Very Rapid Fire</i>, use 0.5.<br>
+      <label for="nShots">nShots</label> <input id="nShots"> <br>
+      <label for="nReload">nReload</label> <input id="nReload"> The weapon's Reload time. Individual notation permitted, eg 3i.<br>
+      <label for="nDefense">nDefense</label> <input id="nDefense"> The skill level of the defender. Leave blank to ignore defense chance entirely.<br>
+      <label for="tDefense">tDefenseType</label> <input id="tDefense"> The type of defense. Sequential (negates 1+MoS); Singular (negates 1); Total (negates All); Special (negates higher of 1+MoS or 1+(MoS/Rcl), for countering Very Rapid Fire) <br>
+      <label for="nBurstSize">nBurstSize</label> <input id="nBurstSize"> Amount of shots fired in a long burst; by default, minimum rounds for highest possible RoF Bonus (eg; RoF 10 fires at RoF 9 for +2)<br>
+			<button onclick="calc_hits()">Calculate Hits</button>
+      <p>Chance to Hit: <span id="chancetohit"></span></p>
+      <p>Avg Hits: <span id="avghits"></span></p>
+			<p id="hit_outcomes"></p>
+		</div>
+	</body>
+	<script>
+    var dmgregex= /([0-9]+)d([0-9]+)?([+\-x])?([0-9]+)?\s*\(?([0-9\.]+)?\)?\s*x?([a-z0-9\.+-]+)?/;
+  
+		function dicecalc(ndie,nsides){
+			var r = [], max = ndie-1;
+			function helper(arr,i){
+				for(var j=0; j<nsides;j++){
+					var a = arr.slice(0);
+					a.push(j+1);
+					if(i==max){
+						r.push(a);
+					} else {
+						helper(a,i+1);
+					}
+				}
+			}
+			helper([],0);
+			return r;
+		}
+		
+		function calc_probability(ndie,nsides){
+			var combinations = dicecalc(ndie,nsides);
+			var counters = {};
+			for(var x in combinations){
+				var sum = combinations[x].reduce((a,b) => a + b, 0);
+				if(!(sum in counters)){
+					counters[sum] = 1;
+				} else {
+					counters[sum] += 1;
+				}
+			}
+			for(var y in Object.keys(counters)){
+				counters[Object.keys(counters)[y]] = counters[Object.keys(counters)[y]] / combinations.length;
+			}
+			return counters;
+		}
+				
+		function calc_damage(){
+    try{
+      // base data
+      var debug_string = "";
+      var dam_data = document.getElementById("nDamage").value.match(dmgregex);
+			var hp = Number(document.getElementById("nHP").value);
+      var [,,,operator,,,type] = dam_data || [];
+      var [,die,sides,,mod,divisor,] = dam_data.map(Number) || [];
+      var wnd_maj_chance = 0, wnd_crit_chance = 0, wnd_fatal_chance = 0, ohk_chance = 0,
+					pen_chance = 0, av_dmg = 0, av_inj = 0, min_dmg = 1, dr, wm;
+      
+			
+      // situational data updates
+      if (isNaN(sides)) sides = 6; // if dice sides undefined, assume 6
+      if (type == 'cr') min_dmg = 0; // if damage type crushing; min damage is 0
+      if(document.getElementById("nDR").value != ""){
+        dr = Number(document.getElementById("nDR").value);
+      }
+      var die_outcomes = calc_probability(die,sides);
+      var die_keys = Object.keys(die_outcomes);
+      // if divisor is < 1; make DR 0 become DR 1 and divisor 1.
+      if(isNaN(divisor) || divisor == 0) divisor = 1;
+      if(divisor < 1 && dr == 0){
+        if(divisor < 1 && dr == 0){
+          dr = 1;
+          divisor = 1;
+        }
+      } else {
+        dr = Math.ceil(dr/divisor);
+      }
+			
+			switch(type){
+				case "cut":
+				case "pi+":
+					wm = 1.5;
+					break;
+				case "imp":
+				case "pi++":
+					wm = 2;
+					break;
+				case "pi-":
+					wm = 0.5;
+					break;
+				case undefined:
+					wm = 1;
+					break;
+				default:
+					(!isNaN(Number(type.match(/[0-9\.]+/)))) ? wm = Number(type.match(/[0-9\.]+/)) : wm = 1;
+					break;
+			}
+      
+      for(var x in die_keys){
+        var roll = die_keys[x], chance = die_outcomes[roll], dmg, inj;
+        debug_string += roll + ": ";
+                // determine roll damage
+        switch(operator){
+          case("x"): dmg = roll * mod; break;
+          case("+"): dmg = Number(roll) + mod; break;
+          case("-"): 
+            dmg = roll - mod;
+            if(dmg < min_dmg) dmg = min_dmg;
+            break;
+          case(undefined):
+          default:
+            dmg = Number(roll);
+            // do nothing.
+            break;
+        }
+        debug_string += dmg + " dmg ";
+        
+        //subtract DR
+        if(dr != undefined && !isNaN(dr)){
+          dmg = (dmg - dr)
+          if(dmg < 0) dmg = 0;
+          debug_string += `(${dmg} penetrated) `;
+          if(dmg > 0){
+            pen_chance += (chance);
+          }
+        } 
+				inj = Math.floor(dmg * wm);
+				debug_string += `(${inj} injury)`;
+				if(!isNaN(hp) && hp > 0){
+					if(inj >= (hp * 0.5)){
+						wnd_maj_chance += chance;
+						if(inj >= hp){
+							wnd_crit_chance += chance;
+							if(inj >= (hp * 2)){
+								wnd_fatal_chance += chance;
+								if(inj >= (hp * 6)){
+									ohk_chance += chance;
+								}
+							}
+						}
+					}
+				}
+        av_dmg += (dmg * chance);
+				av_inj += (inj * chance);
+        debug_string += "<br>";
+      }
+      document.getElementById("output").innerHTML = debug_string;
+      if(dr != undefined && !isNaN(dr)) document.getElementById("output").innerHTML += "Chance to Defeat DR : "+round(pen_chance*100,2)+"% <br>";
+      document.getElementById("output").innerHTML += "Average Penetrating Damage : "+round(av_dmg,2)+"<br>";
+      document.getElementById("output").innerHTML += "Average Injury Caused : "+round(av_inj,2)+"<br>";
+			document.getElementById("nAvDamage").value = round(av_dmg,2);
+			if(!isNaN(hp) && hp > 0){
+				document.getElementById("output").innerHTML += "Major Wound Chance : "+round(wnd_maj_chance*100,2)+"% <br>";
+				document.getElementById("output").innerHTML += "Critical Wound Chance : "+round(wnd_crit_chance*100,2)+"% <br>";
+				document.getElementById("output").innerHTML += "Fatal Wound Chance : "+round(wnd_fatal_chance*100,2)+"% <br>";
+				document.getElementById("output").innerHTML += "Instant Death Chance : "+round(ohk_chance*100,2)+"% <br>";
+			}
+			
+    } catch(e){
+    alert(e);
+    }
+		}
+		
+		function calc_hits(){
+		try{
+			var dmg = Number(getVal("nAvDamage")), skill = Number(skill = getVal("nSkill")), rof = Number(getVal("nRoF")), rcl = Number(getVal("nRcl")), 
+					shots = Number(getVal("nShots")), reload = getVal("nReload"), defskill = Number(getVal("nDefense")), deftype = getVal("tDefense");
+			var skill_chances = calc_probability(3,6), skill_keys = Object.keys(skill_chances);
+			var hit_chance = 0, crit_chance = 0, pot_hits = 0, conf_hits = 0, crit_hits = 0, av_inj = 0, autohit, automiss = 17;
+			alert("Got here");
+			if(skill == 15){
+				autohit = 5;
+			} else if (skill > 15){
+				autohit = 6;
+			} else {
+				autohit = 4;
+			}
+			var debug = "";
+			for(var x in skill_keys){
+				var roll = skill_keys[x], roll_num = Number(roll);
+				var hits = 0;
+				debug += `${roll} : `;
+				if((roll_num <= skill && roll_num < automiss) || roll_num <= autohit){
+					hit_chance += skill_chances[roll];
+					hits += 1 + (Math.floor((skill - roll_num)/rcl));
+					if(hits > rof) hits = rof;
+					pot_hits += hits * skill_chances[roll];
+					debug += `( maximum ${hits})`;
+					if(roll_num <= autohit){
+						crit_chance += skill_chances[roll];
+						conf_hits += hits * skill_chances[roll]; // all potential hits are confirmed and contribute to average hits fully.
+						crit_hits += hits * skill_chances[roll]; // counts nHits caused by crits.
+						av_inj += (hits * dmg * skill_chances[roll]);
+						debug += ` Critical! ${hits} hits dealing ${hits * dmg} Injury Total`;
+					} else {
+						if(defskill == 0 || isNaN(defskill)){
+							debug += ` ${hits} hits dealing ${hits * dmg} Injury Total`;
+							conf_hits += (hits * skill_chances[roll]);
+							av_inj += (hits * dmg * skill_chances[roll]);
+						} else {
+							// code here to *reduce* nhits by dodges
+						}
+					}
+				} else {
+					debug += "Miss!";
+				}
+				debug += "<br>";
+			}
+			alert(`Average Hits = ${round(conf_hits,2)}\nAverage Injury = ${round(av_inj,2)}\nHit Chance ${round(hit_chance*100,2)}%\nCrit Chance ${round(crit_chance*100,2)}%`);
+			document.getElementById("hit_outcomes").innerHTML = debug;
+			
+		} catch(e) {
+			alert(e.message);
+		}
+		}
+		
+		function tablecell(content,type){
+			var newitem = document;
+		}
+		
+		function getVal(id){
+			return document.getElementById(id).value;
+		}
+		
+		function round(val,dec){
+			return Number(Math.round(val+'e'+dec)+'e-'+dec);
+		}
+		
+	</script>
+</html>
