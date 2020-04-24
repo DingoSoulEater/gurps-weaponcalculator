@@ -1,254 +1,705 @@
 <html>
 	<head>
+		<title>Attack Result Calculator</title>
+		<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
     <style>
-      label{
-        display:inline-block;
-        width:90px;
-      }
-      input{
-        width:80px;
-      }
+			h1{
+				font-size:1.25em;
+				font-weight:400;
+				font-style:italic;
+				text-align:left;
+				margin:10px 5px 2px;
+			}
+			input{
+				width:100%;
+				box-sizing:border-box;
+			}
+			html{
+				background-color:#202020;
+				color:#bbb;
+				font-family:'Roboto',sans-serif;
+				font-weight:300;
+			}
+			body{
+				width:80%;
+				max-width:1000px;
+				margin: 0 auto;
+				text-align:center;
+				background-color:#303038;
+				padding:30px 10px;
+			}
+			.field_heading{
+				font-size:1.2rem;
+				font-weight:bold;
+				font-style:italic;
+			}
+			.field_flexbox{
+				display:flex;
+				border-radius:5px;
+				margin:5px 0px;
+				background-color:#404048;
+				padding:4px;
+			}
+			.field_cont{
+				flex-grow:1;
+				width:100px;
+				padding:2px 5px;
+			}
+			.field_cont div{
+				font-size:0.8rem;
+				font-variant:small-caps;
+				font-weight:400;
+			}
     </style>
 	</head>
 	<body>
 		<div>
-      <p><b>Damage Calculation</b></p>
-			<label for="nDamage">nDamage</label> <input id="nDamage"> The weapon's damage statline, eg 8dx4 (10) cr. Explosion damage is currently not supported, so omit it from the stat line. <br>
-      <label for="nDR">nDR</label> <input id="nDR"> The amount of DR the attack facing. If DR is <i>blank</i>, DR is ignored entirely, <i>including</i> the DR1 given against AD < 1 attacks. Use DR 0 for including the 1 DR from AD < 1 attacks.<br>
-      <label for="nHP">nHP</label> <input value=10 id="nHP"> The amount of HP the victim has. This is used to determine likelihood of Major Wound (HP/2), Critical Wound (HP), Fatal Wound (HPx2), or Instant Death (HPx6). <br>
-			<button onclick="calc_damage()">Calculate Damage</button>
-			<p id="output"></p>
-			<p></p>
-      <p><b>Hit Calculation</b></p>
-      <label for="nAvDamage">nAvDamage</label> <input id="nAvDamage"> Average damage per hit. If you calculate damage above, this will be filled automatically.<br>
-      <label for="nSkill">nSkill</label> <input id="nSkill"> The skill level of the shooter before Rate of Fire bonuses.<br>
-      <label for="nRoF">nRoF</label> <input id="nRoF"> The weapon's RoF. Multiple projectile loads are supported (eg 3x9 for shotguns)<br>
-      <label for="nRcl">nRcl</label> <input id="nRcl"> The weapon's Rcl. Decimals are supported; for <i>Very Rapid Fire</i>, use 0.5.<br>
-      <label for="nShots">nShots</label> <input id="nShots"> <br>
-      <label for="nReload">nReload</label> <input id="nReload"> The weapon's Reload time. Individual notation permitted, eg 3i.<br>
-      <label for="nDefense">nDefense</label> <input id="nDefense"> The skill level of the defender. Leave blank to ignore defense chance entirely.<br>
-      <label for="tDefense">tDefenseType</label> <input id="tDefense"> The type of defense. Sequential (negates 1+MoS); Singular (negates 1); Total (negates All); Special (negates higher of 1+MoS or 1+(MoS/Rcl), for countering Very Rapid Fire) <br>
-      <label for="nBurstSize">nBurstSize</label> <input id="nBurstSize"> Amount of shots fired in a long burst; by default, minimum rounds for highest possible RoF Bonus (eg; RoF 10 fires at RoF 9 for +2)<br>
-			<button onclick="calc_hits()">Calculate Hits</button>
-      <p>Chance to Hit: <span id="chancetohit"></span></p>
-      <p>Avg Hits: <span id="avghits"></span></p>
-			<p id="hit_outcomes"></p>
+		<!-- Brief Block -->
+		<div>
+			<p>This is the GURPS Weapon Output Calculator; this can be used to identify probabilities of given outcomes using weapons in the GURPS Tabletop Role-Playing System.</p>
+			
+			<p>To use this system, simply enter any data in question into their given fields and press 'calculate'. Fields will accept the format of text as presented within their respective materials, such as a Damage string of <u>6dx4 (5) pi+</u>. Fields marked with an asterisk are required, others can be ignored such as in the case of melee weapons.</p>
+			
+			<p>At current, this system is still rather barebones; suggestions or requests for additional features or options can be directed to Dingo#0834 on Discord. Of note, one particular request of the full potential damage curve over multiple attacks currently isn't going to be implemented, due to the required amount of calculation required liable to crash most browsers.</p>
+			
+			<p>This system works through brute force and calculation of every potential permutation and combination given the provided values. As such, this system should present high accuracy; though particularly large damage values may cause this to stall. As such, the damage input die is limited to 10d. Values may be slightly off by 0.01 or .1% due to floating point rounding.</p>
 		</div>
+		<!-- Weapon Block -->
+		<div class="field_frame">
+			<h1>Weapon</h1>
+			<div class="field_flexbox">
+				<div class="field_cont" style="flex-grow:5">
+					<div>
+						Damage
+					</div>
+					<input id="dmg_string">
+				</div>
+				<div class="field_cont">
+					<div>
+						Acc
+					</div>
+					<input id="acc">
+				</div>
+				<div class="field_cont">
+					<div>
+						RoF
+					</div>
+					<input id="rof">
+				</div>
+				<div class="field_cont">
+					<div>
+						Shots
+					</div>
+					<input id="shots">
+				</div>
+				<div class="field_cont">
+					<div>
+						Reload
+					</div>
+					<input id="reload">
+				</div>
+				<div class="field_cont">
+					<div>
+						Rcl
+					</div>
+					<input id="rcl">
+				</div>
+				<div class="field_cont">
+					<div>
+						1/2D
+					</div>
+					<input id="halfrange">
+				</div>
+				<div class="field_cont">
+					<div>
+						Malf
+					</div>
+					<input id="malf">
+				</div>
+			</div>
+		</div>
+		<div class="field_frame" style="float:left; width:49%">
+			<h1>Attack</h1>
+			<div class="field_flexbox">
+				<div class="field_cont">
+					<div>
+						Skill
+					</div>
+					<input id="atk_skill">
+				</div>
+				<div class="field_cont">
+					<div>
+						Aim Time
+					</div>
+					<input id="aim">
+				</div>
+				<div class="field_cont">
+					<div>
+						Burst Length
+					</div>
+					<input id="burst">
+				</div>
+				<div class="field_cont">
+					<div>
+						Distance
+					</div>
+					<input id="def_type">
+				</div>
+			</div>
+		</div>
+		<div class="field_frame" style="float:right; width:49%">
+			<h1>Target</h1>
+			<div class="field_flexbox">
+				<div class="field_cont">
+					<div>
+						DR
+					</div>
+					<input id="dr">
+				</div>
+				<div class="field_cont">
+					<div>
+						HP
+					</div>
+					<input id="hp">
+				</div>
+				<div class="field_cont">
+					<div>
+						Defence Level
+					</div>
+					<input id="def_skill">
+				</div>
+				<div class="field_cont">
+					<div>
+						Defence Type
+					</div>
+					<select id="def_type">
+						<option val="margin">Margin</option>
+						<option val="total">Total</option>
+						<option val="single">Single</option>
+						<option val="scaled">Scaled</option>
+					</select>
+				</div>
+			</div>
+		</div>
+		<div class="field_frame">
+			<h1>Options</h1>
+			<div class="field_flexbox">
+				<div class="field_cont">
+					<div>
+						Allow Partial Bursts
+					</div>
+					<input id="partial_bursts" type="checkbox">
+				</div>
+				<div class="field_cont">
+					<div>
+						1/2 Damage (For Range)
+					</div>
+					<input id="half" type="checkbox">
+				</div>
+				<div class="field_cont">
+					<div>
+						Predictive/Deceptive to 16
+					</div>
+					<input id="deceptive" type="checkbox">
+				</div>
+			</div>
+			<div class="field_flexbox">
+				<div class="field_cont">
+					<button onclick="dmg_data()">Hit</button>
+				</div>
+				<div class="field_cont">
+					<button>Attack</button>
+				</div>
+				<div class="field_cont">
+					<button>Full Reload</button>
+				</div>
+			</div>
+		</div>
+		<pre>
+			<code id="output">
+			</code>
+		</pre>
 	</body>
 	<script>
-    var dmgregex= /([0-9]+)d([0-9]+)?([+\-x])?([0-9]+)?\s*\(?([0-9\.]+)?\)?\s*x?([a-z0-9\.+-]+)?/;
+    var dmgregex= /([0-9]+)d([0-9]+)?([+\-x¥\*])?([0-9]+)?\s*\(?([0-9\.]+)?\)?\s*x?([a-z0-9\.+-]+)?/;
+		var roftable= { 1 : 0, 5 : 1, 9 : 2, 13 : 3, 17 : 4,
+										25 : 5, 50 : 6, 100 : 7, 200 : 8,
+										400 : 9, 800 : 10 };
+		var rngtable= {    2 : 0,      3 : -1,     5 : -2,     7 : -3, 
+										  10 : -4,    15 : -5,    20 : -6,    30 : -7,  
+										  50 : -8,    70 : -9,   100 : -10,  150 : -11,  
+										 200 : -12,  300 : -13,  500 : -14,  700 : -15,
+										1000 : -16, 1500 : -17, 2000 : -18, 3000 : -19 };		
+		
+		function getProps(arr){
+			var obj = {};
+			for(var x in arr){
+				var e = document.getElementById(arr[x]);
+				if(e.type == "checkbox"){
+					obj[arr[x]] = e.checked;
+				} else {
+					obj[arr[x]] = e.value;
+				}
+			}
+			return obj;
+		}
+		
+		function dmg_data(){
+			var props = getProps(["dmg_string","hp","dr","half"]);
+			console.log(props);
+			var data = calc_damage(props.dmg_string,props.hp,props.dr,props.half);
+			console.log(data);
+		}
+		
+		function attack_data(){
+			var props = getProps(["dmg_string","hp","dr","half"]);
+			console.log(props);
+			var dmg_data = calc_damage(props.dmg_string,props.hp,props.dr,props.half);
+			console.log(dmg_data);
+			var hit_data = calc_hits(weapon,attack,defend);
+		}
+										
+		function rof_lookup(rounds,projectiles){
+			if(projectiles == undefined) projectiles = 1;
+			// returns a lookup using lower-limit logic (eg; looks for *highest* key that is *lower than or equal to* the input)
+			var keys = Object.keys(roftable);
+			for(var x in keys){
+				if(keys[Number(x)+1] > (rounds*projectiles) && (rounds*projectiles) >= keys[x]){
+					return {
+						minimum : Number(keys[x]),
+						value : roftable[keys[x]],
+						min_shells : Math.ceil(keys[x]/projectiles)
+						};
+				}
+			}
+			throw new Error("Error in table lookup; out of range.");
+		}
+		
+		function rng_lookup(input){
+			// returns a lookup using upper-limit logic (eg; looks for *lowest* key that is *higher than or equal to* the input)
+			var keys = Object.keys(rngtable);
+			for(var x in keys){
+				if(input <= keys[x]){
+					return {
+						limit : Number(keys[x]),
+						value : rngtable[keys[x]]
+						};
+				}
+			}
+			throw new Error("Error in range table lookup; out of range.");
+		}
   
-		function dicecalc(ndie,nsides){
-			var r = [], max = ndie-1;
-			function helper(arr,i){
-				for(var j=0; j<nsides;j++){
+		// this function is indexed from 1 rather than 0 as it's counting positive 
+		// integers from a provided index-1 reference (user input ndie and nsides);
+		// returns an object with a key for each potential outcome of ndie with nsides,
+		// with a value equal to their percentile chance.
+		function p_calc(ndie,nsides){
+			var p = {}, max = ndie, tot = 0;
+			
+			// helper creates each potential combination of 
+			// die by iteration. Once it reaches the end of a combination,
+			// add +1 to p[value], counting the amount of times that value
+			// is reached; and +1 to x, counting the amount of total combinations.
+			function helper(arr,sum,i){
+			
+				// For each potential side;
+				// Make a copy of the original array representing die rolled so far...
+				// And append the current side to it. 
+				// This results in [1] when wanting 2d6 creating the arrays
+				// [1,1], [1,2], [1,3], [1,4], [1,5], [1,6].
+				// If more dice are needed; repeat this process again on the new arrays.
+				// If no more dice are needed, sum up values in array and add to probability
+				// collector/counter.
+				for(var j = 1; j <= nsides; j++){
 					var a = arr.slice(0);
-					a.push(j+1);
+					a.push(j);
+					// if at last die...
 					if(i==max){
-						r.push(a);
+						if(p.hasOwnProperty((sum+j))){
+						  p[sum+j] = p[sum+j]+1;
+							tot += 1;
+						} else {
+						  p[sum+j] = 1;
+							tot += 1;
+					  }
 					} else {
-						helper(a,i+1);
+					  helper(a,sum+j,i+1);
 					}
 				}
 			}
-			helper([],0);
-			return r;
+			
+			helper([],0,1);
+			
+			// for each total of combinations resulting in a given sum (p[sum] = ncombinations)
+			// divide current value (amount of combinations resulting in that sum) by total 
+			// potential die combinations (equal to nsides ^ ndie);
+			var keys = Object.keys(p);
+			var tot = Math.pow(nsides,ndie);
+			for(var x = 0; x < keys.length; x++){
+				p[keys[x]] = p[keys[x]]/tot;
+			}
+			return p;
 		}
 		
-		function calc_probability(ndie,nsides){
-			var combinations = dicecalc(ndie,nsides);
-			var counters = {};
-			for(var x in combinations){
-				var sum = combinations[x].reduce((a,b) => a + b, 0);
-				if(!(sum in counters)){
-					counters[sum] = 1;
-				} else {
-					counters[sum] += 1;
+		function default_input(def_data,prov_data){
+			if(prov_data == undefined){
+				prov_data = {};
+			}
+			var keys = Object.keys(def_data);
+			for(var x in keys){
+				if(prov_data[keys[x]] == undefined || typeof(prov_data[keys[x]]) != typeof(def_data[keys[x]])){
+					prov_data[keys[x]] = def_data[keys[x]];
 				}
 			}
-			for(var y in Object.keys(counters)){
-				counters[Object.keys(counters)[y]] = counters[Object.keys(counters)[y]] / combinations.length;
-			}
-			return counters;
+			return prov_data;
 		}
+		
+		// new version of calc_damage() that instead takes inputs, to make it easier to incorporate with other systems.
+		// outputs an object
+		function calc_damage(dmg_string,hp,dr,half){
+				// base data
+				var output = {
+					roll_outcomes : {},
+					};
+				var dam_data = dmg_string.match(dmgregex);
+				var [,,,operator,,,type] = dam_data || [];
+				var [,die,sides,,mod,divisor,] = dam_data.map(Number) || [];
 				
-		function calc_damage(){
-    try{
-      // base data
-      var debug_string = "";
-      var dam_data = document.getElementById("nDamage").value.match(dmgregex);
-			var hp = Number(document.getElementById("nHP").value);
-      var [,,,operator,,,type] = dam_data || [];
-      var [,die,sides,,mod,divisor,] = dam_data.map(Number) || [];
-      var wnd_maj_chance = 0, wnd_crit_chance = 0, wnd_fatal_chance = 0, ohk_chance = 0,
-					pen_chance = 0, av_dmg = 0, av_inj = 0, min_dmg = 1, dr, wm;
-      
-			
-      // situational data updates
-      if (isNaN(sides)) sides = 6; // if dice sides undefined, assume 6
-      if (type == 'cr') min_dmg = 0; // if damage type crushing; min damage is 0
-      if(document.getElementById("nDR").value != ""){
-        dr = Number(document.getElementById("nDR").value);
-      }
-      var die_outcomes = calc_probability(die,sides);
-      var die_keys = Object.keys(die_outcomes);
-      // if divisor is < 1; make DR 0 become DR 1 and divisor 1.
-      if(isNaN(divisor) || divisor == 0) divisor = 1;
-      if(divisor < 1 && dr == 0){
-        if(divisor < 1 && dr == 0){
-          dr = 1;
-          divisor = 1;
-        }
-      } else {
-        dr = Math.ceil(dr/divisor);
-      }
-			
-			switch(type){
-				case "cut":
-				case "pi+":
-					wm = 1.5;
-					break;
-				case "imp":
-				case "pi++":
-					wm = 2;
-					break;
-				case "pi-":
-					wm = 0.5;
-					break;
-				case undefined:
-					wm = 1;
-					break;
-				default:
-					(!isNaN(Number(type.match(/[0-9\.]+/)))) ? wm = Number(type.match(/[0-9\.]+/)) : wm = 1;
-					break;
-			}
-      
-      for(var x in die_keys){
-        var roll = die_keys[x], chance = die_outcomes[roll], dmg, inj;
-        debug_string += roll + ": ";
-                // determine roll damage
-        switch(operator){
-          case("x"): dmg = roll * mod; break;
-          case("+"): dmg = Number(roll) + mod; break;
-          case("-"): 
-            dmg = roll - mod;
-            if(dmg < min_dmg) dmg = min_dmg;
-            break;
-          case(undefined):
-          default:
-            dmg = Number(roll);
-            // do nothing.
-            break;
-        }
-        debug_string += dmg + " dmg ";
-        
-        //subtract DR
-        if(dr != undefined && !isNaN(dr)){
-          dmg = (dmg - dr)
-          if(dmg < 0) dmg = 0;
-          debug_string += `(${dmg} penetrated) `;
-          if(dmg > 0){
-            pen_chance += (chance);
-          }
-        } 
-				inj = Math.floor(dmg * wm);
-				debug_string += `(${inj} injury)`;
-				if(!isNaN(hp) && hp > 0){
-					if(inj >= (hp * 0.5)){
-						wnd_maj_chance += chance;
-						if(inj >= hp){
-							wnd_crit_chance += chance;
-							if(inj >= (hp * 2)){
-								wnd_fatal_chance += chance;
-								if(inj >= (hp * 6)){
-									ohk_chance += chance;
+				// initalise basic variables.
+				var wnd_maj_chance = 0, wnd_crit_chance = 0, wnd_fatal_chance = 0, ohk_chance = 0,
+						pen_chance = 0, av_dmg = 0, av_inj = 0, min_dmg = 1, wm;
+				
+				
+				// situational data updates
+				if (isNaN(sides)) sides = 6;   // if dice sides undefined, assume 6
+				if (type == 'cr') min_dmg = 0; // if damage type crushing; min damage is 0
+
+				// If divisor not listed, treat as divisor 1
+				if(isNaN(divisor) || divisor == 0) divisor = 1;
+				
+				// if DR == -1 ; assume DR calculation to be ignored, and set DR 1.
+				// Otherwise, if DR == 0 and divisor is less than 1; set DR 1
+				// otherwise, DR = DR/Divisor.
+				if(dr == -1 || dr == undefined){
+					dr = 0;
+				} else if(divisor < 1 && dr == 0){
+					dr = 1;
+				} else {
+					dr = Math.ceil(dr/divisor);
+				}
+				output.dr = dr; // returns *effective* DR after AD.
+				
+				// change wound multiplier based on damage type.
+				switch(type){
+					case "cut": case "pi+": wm = 1.5; break;
+					case "imp": case "pi++": wm = 2; break;
+					case "pi-": wm = 0.5; break;
+					default: wm = 1; break;
+				}
+				
+				output.wm = wm;
+				
+				// calculate chancess of damage.
+				var die_outcomes = p_calc(die,sides);
+				// list all potential damage outputs.
+				var die_keys = Object.keys(die_outcomes);
+				
+				// for each potential damage output;
+				for(var x in die_keys){
+					var roll = Number(die_keys[x]), chance = die_outcomes[roll], dmg, inj;
+					
+					// determine roll damage
+					switch(operator){
+						case("x"): case("¥"): case("*"): dmg = roll * mod; break;
+						case("+"): dmg = roll + mod; break;
+						case("-"): 
+							dmg = roll - mod;
+							break;
+						default:
+							dmg = roll;
+							// do nothing.
+							break;
+					}
+					// if half == true for determining 1/2D range; reduce damage after all mods by 50%;
+					if(half == true) dmg = Math.floor(dmg/2);
+					if(dmg < min_dmg) dmg = min_dmg;
+					output.roll_outcomes[roll] = {
+						roll_txt : `${roll}${operator}${mod} [${dmg}]`,
+						roll_num : roll,
+					chance : chance};
+					
+					//subtract DR
+					if(dr != undefined && !isNaN(dr)){
+						dmg = (dmg - dr)
+						if(dmg < 0) dmg = 0;
+						if(dmg > 0){
+							pen_chance += (chance);
+						}
+					} else {
+						dr = 0;
+					}
+					inj = Math.floor(dmg * wm);
+					output.roll_outcomes[roll].dmg = dmg;
+					output.roll_outcomes[roll].inj = inj;
+					if(!isNaN(hp) && hp > 0){
+						if(inj > (hp * 0.5)){
+							wnd_maj_chance += chance;
+							if(inj >= hp){
+								wnd_crit_chance += chance;
+								if(inj >= (hp * 2)){
+									wnd_fatal_chance += chance;
+									if(inj >= (hp * 6)){
+										ohk_chance += chance;
+									}
 								}
 							}
 						}
 					}
+					av_dmg += (dmg * chance);
+					av_inj += (inj * chance);
 				}
-        av_dmg += (dmg * chance);
-				av_inj += (inj * chance);
-        debug_string += "<br>";
-      }
-      document.getElementById("output").innerHTML = debug_string;
-      if(dr != undefined && !isNaN(dr)) document.getElementById("output").innerHTML += "Chance to Defeat DR : "+round(pen_chance*100,2)+"% <br>";
-      document.getElementById("output").innerHTML += "Average Penetrating Damage : "+round(av_dmg,2)+"<br>";
-      document.getElementById("output").innerHTML += "Average Injury Caused : "+round(av_inj,2)+"<br>";
-			document.getElementById("nAvDamage").value = round(av_dmg,2);
-			if(!isNaN(hp) && hp > 0){
-				document.getElementById("output").innerHTML += "Major Wound Chance : "+round(wnd_maj_chance*100,2)+"% <br>";
-				document.getElementById("output").innerHTML += "Critical Wound Chance : "+round(wnd_crit_chance*100,2)+"% <br>";
-				document.getElementById("output").innerHTML += "Fatal Wound Chance : "+round(wnd_fatal_chance*100,2)+"% <br>";
-				document.getElementById("output").innerHTML += "Instant Death Chance : "+round(ohk_chance*100,2)+"% <br>";
-			}
-			
-    } catch(e){
-    alert(e);
-    }
+				output.av_inj = av_inj;
+				output.av_dmg = av_dmg;
+				output.dr_pen_chance = pen_chance;
+				output.wnd_maj_chance = wnd_maj_chance;
+				output.wnd_crt_chance = wnd_crit_chance;
+				output.wnd_fat_chance = wnd_fatal_chance;
+				output.wnd_ohk_chance = ohk_chance;
+				return output;
 		}
-		
-		function calc_hits(){
-		try{
-			var dmg = Number(getVal("nAvDamage")), skill = Number(skill = getVal("nSkill")), rof = Number(getVal("nRoF")), rcl = Number(getVal("nRcl")), 
-					shots = Number(getVal("nShots")), reload = getVal("nReload"), defskill = Number(getVal("nDefense")), deftype = getVal("tDefense");
-			var skill_chances = calc_probability(3,6), skill_keys = Object.keys(skill_chances);
-			var hit_chance = 0, crit_chance = 0, pot_hits = 0, conf_hits = 0, crit_hits = 0, av_inj = 0, autohit, automiss = 17;
-			alert("Got here");
-			if(skill == 15){
-				autohit = 5;
-			} else if (skill > 15){
-				autohit = 6;
-			} else {
-				autohit = 4;
-			}
-			var debug = "";
-			for(var x in skill_keys){
-				var roll = skill_keys[x], roll_num = Number(roll);
-				var hits = 0;
-				debug += `${roll} : `;
-				if((roll_num <= skill && roll_num < automiss) || roll_num <= autohit){
-					hit_chance += skill_chances[roll];
-					hits += 1 + (Math.floor((skill - roll_num)/rcl));
-					if(hits > rof) hits = rof;
-					pot_hits += hits * skill_chances[roll];
-					debug += `( maximum ${hits})`;
-					if(roll_num <= autohit){
-						crit_chance += skill_chances[roll];
-						conf_hits += hits * skill_chances[roll]; // all potential hits are confirmed and contribute to average hits fully.
-						crit_hits += hits * skill_chances[roll]; // counts nHits caused by crits.
-						av_inj += (hits * dmg * skill_chances[roll]);
-						debug += ` Critical! ${hits} hits dealing ${hits * dmg} Injury Total`;
-					} else {
-						if(defskill == 0 || isNaN(defskill)){
-							debug += ` ${hits} hits dealing ${hits * dmg} Injury Total`;
-							conf_hits += (hits * skill_chances[roll]);
-							av_inj += (hits * dmg * skill_chances[roll]);
-						} else {
-							// code here to *reduce* nhits by dodges
-						}
+
+		// new version of calc_hits().
+		// needs to be provided 3 objects; projectiles overrides weapon rof, skillmod modifies skill, these are optional.
+		function calc_hits(weapon,attack,defend,projectiles,atkmod,defmod){
+			try{
+				console.log("Projectiles = "+projectiles);
+				// apply default values to provided weapon, attacker, and defender if not provided.
+				var defaults = { def_weapon : { rof : 1, rcl : 1, malf : 19 }, // minimum legal stats for a firearm.
+												 def_attack : { skill : 12 },                  // average non-heroic shooter, taking aimed shots.
+												 def_defend : { skill : 8, type : "sequential" }};// average non-heroic combatant, using dodge.
+				
+				weapon = default_input(defaults.def_weapon,weapon);
+				attack = default_input(defaults.def_attack,attack);
+				defend = default_input(defaults.def_defend,defend);
+								
+				var statistics = {
+					chance_hit : 0, chance_crit : 0, chance_malf : 0,
+					outcomes_attack : {}, 
+					hits_pot : 0, hits_conf : 0, hits_crit : 0, def_hits : 0 };
+					
+				var gurps_die = p_calc(3,6), gurps_roll = Object.keys(gurps_die);
+				var autohit = 4, autofail = 17, dodgemap = {}, effective_atk = attack.skill, 
+						effective_rof = weapon.rof, effective_def = defend.skill;
+				
+				if(typeof(atkmod) == "number"){
+					effective_atk += atkmod;
+				}
+				if(typeof(defmod) == "number"){
+					effective_def += defmod;
+				}
+				if(typeof(projectiles) == "number"){
+					effective_rof = projectiles;
+				}
+				console.log(effective_rof);
+				/*
+				var skill_chances = p_calc(3,6), skill_keys = Object.keys(skill_chances); // 3d6 map for probability rolls.
+				var hit_chance = 0, crit_chance = 0, pot_hits = 0, conf_hits = 0, crit_hits = 0, av_inj = 0, autohit = 4, autofail = 17;
+				*/
+				// correct for high skill.
+				if(effective_atk == 15){
+					autohit = 5;
+				} else if (effective_atk > 15){
+					autohit = 6;
+				}
+				if(weapon.malf < autofail){
+					autofail = weapon.malf;
+				}
+				// this section is for determining probability of dodged hits.
+				if(effective_def != 0){
+					// determine the maximum potential amount of hits. This will be a 3 on an attacker's roll.
+					var maxhits = 1+(Math.floor((effective_atk - 3)/weapon.rcl));
+					if(maxhits >= effective_rof) maxhits = effective_rof;
+					var auto_dodge = 4;
+					if(effective_def == 15){
+						auto_dodge = 5;
+					} else if (effective_def > 15){
+						auto_dodge = 6;
 					}
-				} else {
-					debug += "Miss!";
+					for(var x = 1; x <= maxhits; x++){
+					
+						// generates a proper dodgemap; this will include a simple list of..
+						// for x potential hits; how many hits are likely to be defended against.
+						dodgemap[x] = {
+							defended : 0,
+							hits: 0,
+							alldef : 0,
+							somedef : 0
+						};
+						for(var y in gurps_roll){
+							var roll = gurps_roll[y];
+							if(roll <= auto_dodge){
+								dodgemap[x].defended += (x * gurps_die[roll]);
+							} else {
+								if(roll <= effective_def){
+									var defended = 0;
+									var margin = effective_def - roll;
+									switch(defend.type){
+										case "total": defended = x; break; // success prevents all hits.
+										case "special":
+											// Dingo's special version to account for Very High Rate of Fire.
+											defended = ((weapon.rcl < 1) ? 1 + Math.floor(margin/weapon.rcl) : 1 + margin);
+											break;
+										case "single": defended = 1; break; // success prevents 1 hit.
+										case "margin": // sucess prevents 1 + MoS hits. Also default behaviour.
+										default:
+											defended = 1 + margin; 
+											break;
+									}
+									if(defended > x) defended = x;
+									dodgemap[x].hits += ((x - defended) * gurps_die[roll]);
+									dodgemap[x].defended += (defended * gurps_die[roll]);
+								} else {
+									dodgemap[x].hits += (x * gurps_die[roll]);
+								}
+							}
+						}
+					}				
 				}
-				debug += "<br>";
+				
+				for(var x in gurps_roll){
+					var roll = gurps_roll[x];
+					var hits = 0;
+					if((roll <= effective_atk && roll < autofail && roll < weapon.malf) || roll <= autohit){
+						statistics.chance_hit += gurps_die[roll];
+						hits += 1 + (Math.floor((effective_atk - roll)/weapon.rcl));
+						if(hits > effective_rof) hits = effective_rof;
+						if(hits < 1 && roll <= autohit) hits = 1;
+						statistics.hits_pot += hits * gurps_die[roll];
+						if(roll <= autohit){
+							statistics.outcomes_attack[roll] = {
+								hits_pot : hits,
+								hits_conf: hits,
+								hits_def : 0,
+								chance   : gurps_die[roll]
+							};
+							statistics.chance_crit += gurps_die[roll];
+							statistics.hits_conf += hits * gurps_die[roll]; // all potential hits are confirmed and contribute to average hits fully.
+							statistics.hits_crit += hits * gurps_die[roll]; // counts nHits caused by crits.
+						} else {
+							if(effective_def == 0){
+								statistics.outcomes_attack[roll] = {
+									hits_pot : hits,
+									hits_conf: hits,
+									hits_def : 0,
+									chance   : gurps_die[roll]
+								};
+								statistics.hits_conf += (hits * gurps_die[roll]);
+							} else {
+								statistics.outcomes_attack[roll] = {
+									hits_pot : hits,
+									hits_conf: dodgemap[hits].hits,
+									hits_def : dodgemap[hits].defended,
+									chance   : gurps_die[roll]
+								};
+								statistics.hits_conf += (dodgemap[hits].hits * gurps_die[roll]);
+								statistics.def_hits += (dodgemap[hits].defended * gurps_die[roll]);
+							}
+						}
+					} else {
+						statistics.outcomes_attack[roll] = {
+							hits_pot : 0,
+							hits_conf : 0,
+							hits_def : 0,
+							chance : gurps_die[roll]
+						};
+						if(roll >= weapon.malf){
+							statistics.chance_malf += gurps_die[roll];
+						} 
+					}
+				}
+				return statistics;
+			} catch(e) {
+				alert(e.message);
 			}
-			alert(`Average Hits = ${round(conf_hits,2)}\nAverage Injury = ${round(av_inj,2)}\nHit Chance ${round(hit_chance*100,2)}%\nCrit Chance ${round(crit_chance*100,2)}%`);
-			document.getElementById("hit_outcomes").innerHTML = debug;
+		}
+
+		function calc_time_dmg(weapon,attack,defend){
+			var defaults = { def_weapon : { dmg_string : "0d", av_dmg : 0, rof : 1, shots : 1, rel : 0, acc : 1, rcl : 1, malf : 19, halfrange : 100}, // default legal stats for a firearm.
+											 def_attack : { skill : 12, aimtime : 0, burst : -1 , range : 0, partial_bursts: true},                                // average non-heroic shooter, taking aimed shots.
+											 def_defend : { skill : 8, type : "margin" , dr : 0, hp : 10}};     
+											 // average non-heroic combatant, using dodge.
+			var projectiles = 1, attacks_per_mag = 1, cycle_length = 1, last_burst = 0, mag_time = 1, individual_reload = false, aim_bonus = 0, scope = 0;
+			if(typeof(weapon.rof) == "string"){
+				if(/[0-9]+[x¥\*][0-9]+/g.test(weapon.rof)){
+					var rof_vals = weapon.rof.match(/([0-9]+)[x¥\*]([0-9]+)/);
+					weapon.rof = Number(rof_vals[1]);
+					projectiles = rof_vals[2];
+				} else {
+					throw new Error("Err in ROF Input - Neither Number or Multiple Projectile Syntax");
+				}
+			}
 			
-		} catch(e) {
-			alert(e.message);
+			if(typeof(weapon.acc) == "string"){
+				if(/[0-9]+\+[0-9]+/g.test(weapon.acc)){
+					var acc_vals = weapon.acc.match(/([0-9]+)\+([0-9]+)/g);
+					console.log(acc_vals);
+					weapon.acc = acc_vals[1];
+					scope = acc_vals[2];
+				} else {
+					throw new Error("Err in Acc Input - Neither Number or Scope Syntax");
+				}
+			}
+			
+			if(attack.aimtime > 0){
+				aim_bonus = weapon.acc;
+				aim_bonus += Math.min(attack.aimtime-1,scope+2);
+				console.log("Aim bonus is "+aim_bonus);
+			}
+			
+			// determine damage.
+			weapon.dmg = calc_damage(weapon.dmg_string,defend.hp,defend.dr);
+			console.log(weapon.dmg);
+			
+			// determine Burst Length, limited by RoF and Available Shots.				
+			if(weapon.rof > weapon.shots){
+				weapon.rof = weapon.shots;
+			}
+			if(attack.burst > weapon.rof){
+				attack.burst = weapon.rof;
+			}
+			if(attack.burst == 0 || attack.burst == undefined){
+				attack.burst = rof_lookup(weapon.rof,projectiles).minimum;
+				console.log(`Best bonus possible for available RoF is ${attack.burst}x${projectiles} (${attack.burst*projectiles}) for +${rof_lookup(attack.burst*projectiles)}`);
+			}
+			
+			attacks_per_mag = Math.floor(weapon.shots/attack.burst);
+			console.log(weapon);
+			var full_burst_outcome = calc_hits(weapon,attack,defend,attack.burst*projectiles,aim_bonus+rof_lookup(projectiles).value);
+			var partial_burst_outcome;
+			last_burst = weapon.shots % attack.burst;
+			mag_time = (attacks_per_mag * ( 1 + attack.aimtime)) + weapon.rel;
+			console.log(`${attacks_per_mag} cycles each firing ${attack.burst} rounds after aiming for ${attack.aimtime} turns, with one reload of ${weapon.rel} seconds. Total - ${mag_time} seconds, ${attack.burst * attacks_per_mag} rounds fired.`);
+			console.log(full_burst_outcome);
+			
+			console.log(`${last_burst} rounds remaining in magazine.`);
+			if(attack.partial_bursts == true && last_burst != 0) {
+				partial_burst_outcome = calc_hits(weapon,attack,defend,last_burst*projectiles,aim_bonus+rof_lookup(projectiles).value);
+				mag_time += attack.aimtime + 1;
+				console.log(`Emptying mag with last burst. Adding ${attack.aimtime+1} to total mag time. Total - ${mag_time} seconds, ${(attack.burst * attacks_per_mag)+last_burst} rounds fired.`);
+				console.log(partial_burst_outcome);
+			}
+			return {
+				bursts : attacks_per_mag,
+				stats_burst : full_burst_outcome,
+				stats_last : partial_burst_outcome,
+				aim_bonus : aim_bonus,
+				rof_bonus : rof_lookup(attack.burst,projectiles).value,
+				mag_time : mag_time
+			}
 		}
-		}
-		
-		function tablecell(content,type){
-			var newitem = document;
-		}
-		
-		function getVal(id){
-			return document.getElementById(id).value;
-		}
-		
+
+		// rounding function that handles really long numbers easily; 
+		// No longer needed, but could have a use later.
 		function round(val,dec){
 			return Number(Math.round(val+'e'+dec)+'e-'+dec);
 		}
